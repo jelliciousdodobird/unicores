@@ -51,6 +51,7 @@
     ]
   },
   "devDependencies": {
-    "apify": "^1.1.2"
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.6"
   }
 }
