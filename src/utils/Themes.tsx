@@ -176,7 +176,8 @@ export const GlobalReset = () => {
         }
 
         ul,
-        ol {
+        ol,
+        li {
           list-style-type: none;
         }
 
