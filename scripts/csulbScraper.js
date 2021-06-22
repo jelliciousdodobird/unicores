@@ -1,4 +1,5 @@
 // Web-scraping script for CSULB
+// Notes: Generated JSON file shows "error" between different json objects containing an entire departments selection of courses.
 const axios = require("axios");
 const cheerio = require("cheerio");
 
@@ -13,6 +14,7 @@ const mainUrl =
 const fetchData = async () => {
   const urls = [];
 
+  // Create/overwrite empty json file for results.
   fs.closeSync(fs.openSync("./scripts/schedule.json", "w"));
 
   return (
@@ -52,42 +54,27 @@ const fetchData = async () => {
         return axios
           .all(promises)
           .then((htmls) => {
-            // let schedules = [];
-            // let rooms = new Map();
-
             htmls.forEach((html, i) => {
               const departmentClasses = {
                 major: "",
                 courses: [],
               };
 
-              const courseInfo = {
-                courseCode: "",
-                courseTitle: "",
-                info: "",
-                units: "",
-                groups: [],
-              };
-
-              // const group = { group: "", requirements: "", classes: [] };
-
-              // const classInfo = {
-              //   section: "",
-              //   classNum: "",
-              //   type: "",
-              //   days: "",
-              //   time: "",
-              //   openSeats: "",
-              //   location: "",
-              //   instructor: "",
-              //   notes: "",
-              // };
-
               let $ = cheerio.load(html.data);
 
+              // Obtain details per department.
               departmentClasses.major = $("h2.departmentTitle").text();
 
+              // Iterate through each course information (not classes) and save.
               $("div.courseBlock").each((i, element) => {
+                const courseInfo = {
+                  courseCode: "",
+                  courseTitle: "",
+                  info: "",
+                  units: "",
+                  groups: [],
+                };
+
                 courseInfo.courseCode = $(element)
                   .find(" div.courseHeader h4 span.courseCode")
                   .text()
@@ -108,15 +95,15 @@ const fetchData = async () => {
                   .text()
                   .trim();
 
-                let group = { group: "", requirements: "", classes: [] };
-
-                // console.log(JSON.stringify(courseInfo));
-
                 // /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+                // Iterate through each class and obtain "group" information.
+                // Groups are "groups of classes" that are grouped together typically for requirments.
+                // IE requiring a lab+sem together
                 $(element)
                   .find(" table.sectionTable")
                   .each((j, jElement) => {
+                    let group = { group: "", requirements: "", classes: [] };
                     if ($(jElement).prev().has("h5").text()) {
                       group.group = $(jElement).prev().find("h5").text();
                     }
@@ -126,52 +113,27 @@ const fetchData = async () => {
 
                     // /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+                    // Iterate through all classes in each group.
                     $(jElement)
                       .find("tbody tr:not(:first-child)")
                       .each((k, kElement) => {
-                        // classInfo.section = $(kElement).children().eq(0).text();
-                        // classInfo.classNum = $(kElement)
-                        //   .children()
-                        //   .eq(1)
-                        //   .text();
-                        // classInfo.type = $(kElement).children().eq(5).text();
-                        // classInfo.days = $(kElement).children().eq(6).text();
-                        // classInfo.time = $(kElement).children().eq(7).text();
-                        // if ($(kElement).children().eq(8).has("div.dot")) {
-                        //   classInfo.openSeats = $(kElement)
-                        //     .children()
-                        //     .eq(8)
-                        //     .find("div.dot")
-                        //     .find("img")
-                        //     .data("title");
-                        // }
-                        // classInfo.location = $(kElement)
-                        //   .children()
-                        //   .eq(9)
-                        //   .text();
-                        // classInfo.instructor = $(kElement)
-                        //   .children()
-                        //   .eq(10)
-                        //   .text();
-                        // classInfo.notes = $(kElement).children().eq(11).text();
-                        // console.log("oooooooooooooooooooooooooo");
-                        // console.log(classInfo);
-                        // console.log("xxxxxxxxxxxxxxxxxxxxxxxxxx");
-                        // group.classes.push(classInfo);
-                        // console.log(group);
                         group.classes.push({
                           section: $(kElement).children().eq(0).text(),
                           classNum: $(kElement).children().eq(1).text(),
                           type: $(kElement).children().eq(5).text(),
                           days: $(kElement).children().eq(6).text(),
                           time: $(kElement).children().eq(7).text(),
-                          openSeats: $(kElement).children().eq(8).has("div.dot")
+                          openSeats: $(kElement)
+                            .children()
+                            .eq(8)
+                            .find("div")
+                            .hasClass("dot")
                             ? $(kElement)
                                 .children()
                                 .eq(8)
                                 .find("div.dot")
                                 .find("img")
-                                .data("title")
+                                .attr("title")
                             : "",
                           location: $(kElement).children().eq(9).text(),
                           instructor: $(kElement).children().eq(10).text(),
@@ -180,13 +142,14 @@ const fetchData = async () => {
                       });
 
                     // /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    courseInfo.groups.push(group);
                   });
-                courseInfo.groups.push(group);
+                departmentClasses.courses.push(courseInfo);
               });
-              departmentClasses.courses.push(courseInfo);
 
               // /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+              // Save course schedule per department into json file.
               try {
                 fs.appendFileSync(
                   "./scripts/schedule.json",
@@ -198,21 +161,24 @@ const fetchData = async () => {
                 );
               }
             });
-            return "Successful.";
           })
-          .catch((errors) => {
-            console.log(errors);
+          .catch((err) => {
+            console.log(err);
           });
       })
-      .then((result) => {
-        console.log(result);
-      })
-      .catch((error) => {
-        console.log(error);
+      .catch((err) => {
+        console.log("Script failed.");
+        console.error(err);
       })
   );
 };
 
-fetchData().then((result) => {
-  console.log(result);
-});
+// Run script.
+fetchData()
+  .then((result) => {
+    console.log("Script finished successfully.");
+  })
+  .catch((err) => {
+    console.log("Script failed.");
+    console.error(err);
+  });
