@@ -70,10 +70,18 @@ const fetchData = async () => {
                 const courseInfo = {
                   courseCode: "",
                   courseTitle: "",
+                  session: "",
                   info: "",
                   units: "",
                   groups: [],
                 };
+
+                if ($(element).parent().find("h2").hasClass("sessionTitle")) {
+                  courseInfo.session = $(element)
+                    .parent()
+                    .find("h2.sessionTitle")
+                    .text();
+                }
 
                 courseInfo.courseCode = $(element)
                   .find(" div.courseHeader h4 span.courseCode")
