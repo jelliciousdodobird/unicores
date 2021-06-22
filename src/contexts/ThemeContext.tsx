@@ -24,7 +24,7 @@ const ThemeStateContext = createContext<State | undefined>(undefined);
  */
 const ThemeStateProvider = ({ children }: ThemeProviderProps) => {
   const [themes, setThemes] = useState(THEMES);
-  const [selectedTheme, setSelectedTheme] = useState("dark");
+  const [selectedTheme, setSelectedTheme] = useState("light");
   const currentTheme = themes[selectedTheme];
   const themeKeys = Object.keys(themes);
 
