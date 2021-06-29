@@ -146,24 +146,34 @@ const NavItem = ({
   );
 };
 
-const WorkSpaceContainer = styled(motion.ul)`
+const WorkSpaceContainer = styled(motion.li)`
   display: flex;
-  flex-flow: column;
-
-  justify-content: flex-start;
-  align-items: center;
 
   height: 100%;
 
   overflow: auto;
+
+  ul {
+    display: flex;
+    flex-flow: column;
+
+    justify-content: flex-start;
+    align-items: center;
+
+    overflow: auto;
+  }
 `;
 
-const PeripheralContainer = styled(motion.ul)`
+const PeripheralContainer = styled(motion.li)`
   display: flex;
-  flex-flow: column;
 
-  justify-content: flex-start;
-  align-items: center;
+  ul {
+    display: flex;
+    flex-flow: column;
+
+    justify-content: flex-start;
+    align-items: center;
+  }
 `;
 
 const SideNavigationBar = () => {
@@ -174,18 +184,40 @@ const SideNavigationBar = () => {
     <SideNavContainer>
       <SideNavigation>
         <NavItem icon={FaRegHeart} link="/test"></NavItem>
-        <li>
-          <WorkSpaceContainer>
+        <WorkSpaceContainer>
+          <ul>
             <NavItem text="home" link="/home"></NavItem>
             <NavItem text="FA20" link="/schedule"></NavItem>
             <NavItem icon={SiBaidu} onClick={Test}></NavItem>
-          </WorkSpaceContainer>
-        </li>
-        <li>
-          <PeripheralContainer>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+            <NavItem icon={SiBaidu} onClick={Test}></NavItem>
+          </ul>
+        </WorkSpaceContainer>
+        <PeripheralContainer>
+          <ul>
             <NavItem text="Setting" link="/"></NavItem>
-          </PeripheralContainer>
-        </li>
+            <NavItem text="Theme" link="/"></NavItem>
+            <NavItem text="Profile" link="/"></NavItem>
+          </ul>
+        </PeripheralContainer>
       </SideNavigation>
     </SideNavContainer>
   );
