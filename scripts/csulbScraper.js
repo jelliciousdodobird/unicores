@@ -11,6 +11,16 @@ const srcUrl =
 const mainUrl =
   "http://web.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2021/By_Subject/";
 
+const DEFAULT_DATE = { m: 0, d: 1, y: 2021, str: "2021-01-01" };
+
+const newTime = (time) => {
+  const dateString = DEFAULT_DATE.str;
+  const timeString = `T${time}:00`;
+  const datetime = new Date(dateString + timeString);
+
+  return datetime;
+};
+
 const fetchData = async () => {
   const urls = [];
 
@@ -33,7 +43,8 @@ const fetchData = async () => {
         return urls;
       })
       .then((urls) => {
-        let promises = [];
+        const promises = [];
+        const schedule = [];
 
         // Create list of promises to iterate through and return html per subdirectory
         urls.forEach((subUrl, i) => {
@@ -125,12 +136,77 @@ const fetchData = async () => {
                     $(jElement)
                       .find("tbody tr:not(:first-child)")
                       .each((k, kElement) => {
+                        // Defining individual class days
+                        const days = $(kElement)
+                          .children()
+                          .eq(6)
+                          .text()
+                          .split(/ (?=M)|(?=W)|(?=Tu)|(?=Th)|(?=F)|(?=Sa) /u);
+
+                        // Defining starttime and endtime in proper date format
+                        const time = {
+                          starttime: { date: "", hour: "", minute: "" },
+                          endtime: { date: "", hour: "", minute: "" },
+                        };
+
+                        if (
+                          ["PM", "AM"].some((el) =>
+                            $(kElement).children().eq(7).text().includes(el)
+                          )
+                        ) {
+                          let times = $(kElement)
+                            .children()
+                            .eq(7)
+                            .text()
+                            .split("-");
+
+                          let AMPM = times[times.length - 1].includes("PM")
+                            ? "PM"
+                            : "AM";
+                          let starttime = times[0].split(":");
+                          let endtime = times[times.length - 1]
+                            .replace(AMPM, "")
+                            .split(":");
+
+                          let SThour = parseInt(starttime[0], 10);
+                          starttime.length > 1
+                            ? (time.starttime.minute = starttime[1])
+                            : (time.starttime.minute = "00");
+                          let EThour = parseInt(endtime[0], 10);
+                          endtime.length > 1
+                            ? (time.endtime.minute = endtime[1])
+                            : (time.endtime.minute = "00");
+
+                          if (AMPM === "PM" && EThour !== 12) {
+                            // If the start hour is greater than the end hour, then the start hour is AM and the end hour is PM.
+                            // Therefore if the start hour is less than the end hour, then the start hour is in the same midday.
+                            // This is under the assumption that no class is 12 hours long.
+                            if (SThour < EThour) SThour = SThour + 12;
+                            EThour = EThour + 12;
+                          }
+
+                          SThour < 10
+                            ? (time.starttime.hour = "0" + SThour.toString())
+                            : (time.starttime.hour = SThour.toString());
+                          EThour < 10
+                            ? (time.endtime.hour = "0" + EThour.toString())
+                            : (time.endtime.hour = EThour.toString());
+
+                          time.starttime.date = newTime(
+                            time.starttime.hour + ":" + time.starttime.minute
+                          );
+                          time.endtime.date = newTime(
+                            time.endtime.hour + ":" + time.endtime.minute
+                          );
+                        }
+
+                        // Add all data
                         group.classes.push({
                           section: $(kElement).children().eq(0).text(),
                           classNum: $(kElement).children().eq(1).text(),
                           type: $(kElement).children().eq(5).text(),
-                          days: $(kElement).children().eq(6).text(),
-                          time: $(kElement).children().eq(7).text(),
+                          days: days,
+                          time: time,
                           openSeats: $(kElement)
                             .children()
                             .eq(8)
@@ -154,25 +230,22 @@ const fetchData = async () => {
                   });
                 departmentClasses.courses.push(courseInfo);
               });
-
-              // /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-              // Save course schedule per department into json file.
-              try {
-                fs.appendFileSync(
-                  "./scripts/schedule.json",
-                  JSON.stringify(departmentClasses)
-                );
-              } catch (err) {
-                console.log(
-                  "Error writing into Json " + departmentClasses.major
-                );
-              }
+              schedule.push(departmentClasses);
             });
+            return schedule;
           })
           .catch((err) => {
             console.log(err);
           });
+      })
+      .then((schedule) => {
+        // Save course schedule into json file.
+        try {
+          const data = JSON.stringify(schedule);
+          fs.appendFileSync("./scripts/schedule.json", data);
+        } catch (err) {
+          console.log("Error writing into Json.");
+        }
       })
       .catch((err) => {
         console.log("Script failed.");
