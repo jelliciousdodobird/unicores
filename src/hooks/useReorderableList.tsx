@@ -1,3 +1,7 @@
+/****************************************************************
+ * DEPRECATED DEPRECATED DEPRACATED DEPRACATED DEPRACATED
+ * maybe be able to use this for grid lists tho
+ ****************************************************************/
 import { useState, useRef } from "react";
 import ScheduleItem, { Position } from "../components/DraggableItem";
 import { moveItem } from "../utils/array-helper";
@@ -5,7 +9,8 @@ import { moveItem } from "../utils/array-helper";
 const useReorderableList = (initialState: any[]) => {
   const [listState, setListState] = useState(initialState);
   const trueDragIndex = useRef(-1);
-  const positions = useRef<Position[]>([]).current;
+  const [positions, setPositions] = useState<Position[]>([]);
+  // const positions = useRef<Position[]>([]).current;
 
   const isIntersected = (index: number, center: number) => {
     const item = positions[index];
@@ -20,9 +25,17 @@ const useReorderableList = (initialState: any[]) => {
   const resetTrueDragIndex = () => (trueDragIndex.current = -1);
 
   const updatePositions = (i: number, offset: Position) =>
-    (positions[i] = offset);
+    setPositions((posList) => [
+      ...posList.slice(0, i),
+      offset,
+      ...posList.slice(i + 1, posList.length),
+    ]);
+  // const updatePositions = (i: number, offset: Position) =>
+  //   (positions[i] = offset);
 
   const updateOrder = (i: number, dragOffset: number) => {
+    // console.log("cp", positions[i].height);
+
     const center = positions[i].top + positions[i].height / 2 + dragOffset;
 
     const prevIndex = Math.max(i - 1, 0);
@@ -55,6 +68,7 @@ const useReorderableList = (initialState: any[]) => {
   return {
     listState,
     setListState,
+    positions,
     updatePositions,
     updateOrder,
     resetTrueDragIndex,
