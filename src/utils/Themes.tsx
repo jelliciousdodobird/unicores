@@ -91,10 +91,10 @@ export const lightTheme: Theme = {
   font: baseFont,
   breakpoints: bp,
   colors: {
-    primary: ccs({ main: "#43dbab" }),
+    primary: ccs({ main: "#5b6eff" }),
     secondary: ccs({ main: "#6c63ff" }),
 
-    background: ccs({ main: "#edf0f5", light: "#f5f5f5" }),
+    background: ccs({ main: "#f5f7fb", light: "#fcfbfc" }),
     surface: ccs({ main: "#ffffff" }),
 
     onPrimary: ccs({ main: "#ffffff" }),
