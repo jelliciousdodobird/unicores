@@ -7,7 +7,6 @@ import Debug from "./components/Debug";
 
 import ScheduleResultList from "./components/SceduleResultList";
 
-import TESTDATA from "./schedule-short.json";
 import { fake_schedules_data } from "./utils/fake-data";
 import { newTime, sanitizeTime } from "./utils/date-time";
 
