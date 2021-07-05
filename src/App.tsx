@@ -5,6 +5,19 @@ import { useEffect } from "react";
 import { useState } from "react";
 import Debug from "./components/Debug";
 
+// routing
+import { BrowserRouter, Switch, Route, Redirect, Link } from "react-router-dom";
+
+// navigation
+import TopNavigationBar from "./components/TopNavigationBar";
+import SideNavigationBar from "./components/SideNavigationBar";
+
+// pages
+import HomePage from "./pages/HomePage";
+
+// temporary
+import Test from "./pages/Test";
+
 import ScheduleResultList from "./components/SceduleResultList";
 
 import { fake_schedules_data } from "./utils/fake-data";
@@ -18,9 +31,25 @@ const supabase = createClient(
 );
 
 const AppContainer = styled.div`
+  overflow: hidden;
   width: 100%;
+
   background-color: ${({ theme }) => theme.colors.background.main};
+
+  display: flex;
+  flex-flow: column nowrap;
+`;
+const PageContainer = styled.div`
+  overflow: hidden;
+  height: 100%;
+
+  display: flex;
+  flex-flow: row nowrap;
+`;
+
+const ContentContainer = styled.div`
   overflow: auto;
+  width: 100%;
 `;
 
 type Result = {
@@ -133,7 +162,24 @@ const App = () => {
 
   return (
     <AppContainer>
-      <ScheduleResultList results={results} />
+      {/* <ScheduleResultList results={results} /> */}
+      <BrowserRouter>
+        <TopNavigationBar></TopNavigationBar>
+        <PageContainer>
+          <SideNavigationBar></SideNavigationBar>
+          <ContentContainer>
+            <Switch>
+              <Route path="/home" component={HomePage} />
+              <Route
+                path="/schedule"
+                component={() => <ScheduleResultList results={results} />}
+              />
+              <Route path="/test" component={Test} />
+            </Switch>
+          </ContentContainer>
+        </PageContainer>
+        {/* <ScheduleResultList /> */}
+      </BrowserRouter>
     </AppContainer>
   );
 };

@@ -36,10 +36,10 @@ export const dimensions: Dimension = {
   unit: 14,
   mainNav: {
     maxWidth: 100,
-    maxHeight: 70,
+    maxHeight: 50,
   },
   subNav: {
-    maxWidth: 60,
+    maxWidth: 50,
     maxHeight: 60,
   },
 };
@@ -91,7 +91,8 @@ export const lightTheme: Theme = {
   font: baseFont,
   breakpoints: bp,
   colors: {
-    primary: ccs({ main: "#5b6eff" }),
+    // 5b6eff
+    primary: ccs({ main: "#7d7dff", light: "#c2d2f6" }),
     secondary: ccs({ main: "#6c63ff" }),
 
     background: ccs({ main: "#f5f7fb", light: "#fcfbfc" }),
