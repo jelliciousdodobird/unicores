@@ -2,16 +2,59 @@
 // Notes: Generated JSON file shows "error" between different json objects containing an entire departments selection of courses.
 const axios = require("axios");
 const cheerio = require("cheerio");
-
 const fs = require("fs");
-
-// Automate by configuring year and semester (Spring, Summer, Fall, Winter)
-const srcUrl =
-  "http://web.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2021/By_Subject/index.html";
-const mainUrl =
-  "http://web.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2021/By_Subject/";
+const path = require("path");
+const yargs = require("yargs");
+// const {} = require("")
 
 const DEFAULT_DATE = { m: 0, d: 1, y: 2021, str: "2021-01-01" };
+
+const currentYear = new Date().getFullYear();
+
+const preArgs = yargs(process.argv.slice(2))
+  .options("raw", {
+    alias: "r",
+    type: "boolean",
+    description: "Outputs the raw data before post processing",
+    default: false,
+  })
+  .options("post_process", {
+    alias: "pp",
+    type: "boolean",
+    description: "Outputs the processed raw data",
+    default: false,
+  })
+  .options("period", {
+    alias: "p",
+    type: "string",
+    requiresArg: 1,
+    default: "fall",
+    coerce: (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase(), // lowercases it
+  })
+  .options("year", {
+    alias: "y",
+    type: "number",
+    requiresArg: 1,
+    default: currentYear,
+  });
+
+const ARGS = preArgs.options("output", {
+  alias: "o",
+  type: "string",
+  requiresArg: 1,
+  default: null,
+}).argv;
+
+console.log(ARGS);
+
+// Automate by configuring year and semester (Spring, Summer, Fall, Winter)
+// const srcUrl =
+//   "http://web.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2021/By_Subject/index.html";
+// const mainUrl =
+//   "http://web.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2021/By_Subject/";
+
+const mainUrl = `http://web.csulb.edu/depts/enrollment/registration/class_schedule/${ARGS.period}_${ARGS.year}/By_Subject/`;
+const srcUrl = `${mainUrl}index.html`;
 
 const newTime = (time) => {
   const dateString = DEFAULT_DATE.str;
@@ -23,9 +66,6 @@ const newTime = (time) => {
 
 const fetchData = async () => {
   const urls = [];
-
-  // Create/overwrite empty json file for results.
-  fs.closeSync(fs.openSync("./scripts/schedule.json", "w"));
 
   return (
     axios
@@ -238,15 +278,6 @@ const fetchData = async () => {
             console.log(err);
           });
       })
-      .then((schedule) => {
-        // Save course schedule into json file.
-        try {
-          const data = JSON.stringify(schedule);
-          fs.appendFileSync("./scripts/schedule.json", data);
-        } catch (err) {
-          console.log("Error writing into Json.");
-        }
-      })
       .catch((err) => {
         console.log("Script failed.");
         console.error(err);
@@ -254,12 +285,52 @@ const fetchData = async () => {
   );
 };
 
+const postProcess = (data) => {
+  return data.map((v) => v + "-PP'd");
+};
+
+const outputToFile = (data, filename) => {
+  // // Create / overwrite empty json file for results.
+  // fs.closeSync(fs.openSync("./scripts/schedule.json", "w"));
+  try {
+    const stringifiedData = JSON.stringify(data);
+    const url = path.resolve(__dirname, filename);
+
+    fs.writeFileSync(url, stringifiedData);
+    // fs.appendFileSync(path.resolve(__dirname, filename), stringifiedData);
+  } catch (err) {
+    console.log("Error writing into Json.");
+  }
+};
+
+const appendToFilename = (filename, str) => {
+  const lastPeriodIndex = filename.lastIndexOf(".");
+
+  const fileName = filename.slice(0, lastPeriodIndex);
+  const filetype = filename.slice(lastPeriodIndex, filename.length + 1);
+
+  return lastPeriodIndex === -1 ? filename : `${fileName}${str}${filetype}`;
+};
+
+const determineFilename = (appendStr) =>
+  ARGS.output
+    ? appendToFilename(ARGS.output, appendStr)
+    : // ? `PP-${ARGS.output}`
+      `${preArgs.argv.period}-${preArgs.argv.year}${appendStr}.json`;
+
 // Run script.
-fetchData()
-  .then((result) => {
-    console.log("Script finished successfully.");
-  })
-  .catch((err) => {
-    console.log("Script failed.");
-    console.error(err);
-  });
+const runScript = async () => {
+  const rawData = ["abc", "gdf", "t"];
+  // const rawData = await fetchData();
+
+  if (ARGS.raw) outputToFile(rawData, determineFilename("-RAW"));
+
+  if (ARGS.post_process) {
+    const processedData = postProcess(rawData);
+    outputToFile(processedData, determineFilename("-PP"));
+  }
+
+  if (!ARGS.raw && !ARGS.post_process) console.log(rawData);
+};
+
+runScript();
