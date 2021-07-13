@@ -1,52 +1,96 @@
 // Web-scraping script for CSULB
 // Notes: Generated JSON file shows "error" between different json objects containing an entire departments selection of courses.
-const axios = require("axios");
-const cheerio = require("cheerio");
-const fs = require("fs");
-const path = require("path");
-const yargs = require("yargs");
-// const {} = require("")
+import axios from "axios";
+import cheerio from "cheerio";
+import fs from "fs";
+import path from "path";
+import yargs from "yargs";
+import readline from "readline";
+import { newTime } from "../src/utils/date-time";
 
-const DEFAULT_DATE = { m: 0, d: 1, y: 2021, str: "2021-01-01" };
-
-const currentYear = new Date().getFullYear();
-
-const preArgs = yargs(process.argv.slice(2))
-  .options("raw", {
+const ARGS = yargs(process.argv.slice(2))
+  .option("raw", {
     alias: "r",
     type: "boolean",
     description: "Outputs the raw data before post processing",
     default: false,
   })
-  .options("post_process", {
+  .option("post_process", {
     alias: "pp",
     type: "boolean",
     description: "Outputs the processed raw data",
     default: false,
   })
-  .options("period", {
+  .option("period", {
     alias: "p",
     type: "string",
-    requiresArg: 1,
+    // requiresArg: 1,
     default: "fall",
-    coerce: (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase(), // lowercases it
+    coerce: (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase(), // lowercases & normalizes argument value
   })
-  .options("year", {
+  .option("year", {
     alias: "y",
     type: "number",
-    requiresArg: 1,
-    default: currentYear,
+    // requiresArg: 1,
+    default: new Date().getFullYear(),
+  })
+  .option("output", {
+    alias: "o",
+    type: "string",
+    // requiresArg: 1,
+    default: null,
+  })
+  .parseSync();
+
+console.log("CLI arguments:", ARGS);
+
+/*************************************************************
+ * FILE UTILITY FUNCTIONS
+ *************************************************************/
+const appendToFilename = (filename: string, str: string) => {
+  const lastPeriodIndex = filename.lastIndexOf(".");
+
+  const fileName = filename.slice(0, lastPeriodIndex);
+  const filetype = filename.slice(lastPeriodIndex, filename.length + 1);
+
+  return lastPeriodIndex === -1 ? filename : `${fileName}${str}${filetype}`;
+};
+
+const determineFilename = (appendStr: string) =>
+  ARGS.output
+    ? appendToFilename(ARGS.output || "", appendStr)
+    : `${ARGS.period}-${ARGS.year}${appendStr}.json`;
+
+const outputToFile = (data: any, filename: string) => {
+  // // Create / overwrite empty json file for results.
+  // fs.closeSync(fs.openSync("./scripts/schedule.json", "w"));
+  try {
+    const stringifiedData = JSON.stringify(data);
+    const url = path.resolve(__dirname, filename);
+
+    fs.writeFileSync(url, stringifiedData);
+    // fs.appendFileSync(path.resolve(__dirname, filename), stringifiedData);
+
+    return url;
+  } catch (err) {
+    console.log("Error writing into Json.");
+    return "";
+  }
+};
+
+const pauseForInput = (query: string) => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
   });
 
-const ARGS = preArgs.options("output", {
-  alias: "o",
-  type: "string",
-  requiresArg: 1,
-  default: null,
-}).argv;
-
-console.log(ARGS);
-
+  return new Promise((resolve) =>
+    rl.question(query, (ans) => {
+      rl.close();
+      resolve(ans);
+    })
+  );
+};
 // Automate by configuring year and semester (Spring, Summer, Fall, Winter)
 // const srcUrl =
 //   "http://web.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2021/By_Subject/index.html";
@@ -56,16 +100,44 @@ console.log(ARGS);
 const mainUrl = `http://web.csulb.edu/depts/enrollment/registration/class_schedule/${ARGS.period}_${ARGS.year}/By_Subject/`;
 const srcUrl = `${mainUrl}index.html`;
 
-const newTime = (time) => {
-  const dateString = DEFAULT_DATE.str;
-  const timeString = `T${time}:00`;
-  const datetime = new Date(dateString + timeString);
-
-  return datetime;
+// !!!!! THESE TYPES ARE JUST SO THAT fetchData() WORKS WITH TYPESCRIPT
+// !!!!! DO NOT USE ANYWHERE ELSE IN THIS FILE
+type Raw_Class = {
+  section: string;
+  classNum: string;
+  type: string;
+  days: string[];
+  time: {
+    starttime: { date: string; hour: string; minute: string };
+    endtime: { date: string; hour: string; minute: string };
+  };
+  openSeats: string;
+  location: string;
+  instructor: string;
+  notes: string;
 };
 
+type Raw_Group = {
+  group: string;
+  requirements: string;
+  classes: Raw_Class[];
+};
+
+type Raw_CourseInfo = {
+  courseCode: string;
+  courseTitle: string;
+  session: string;
+  info: string;
+  units: string;
+  groups: Raw_Group[];
+};
+
+// fetchData() NEEDS TO BE TYPED PROPERLY
+// RIGHT NOW IT IS TYPED JUST SO "IT WORKS"
+// BAD TYPESCRIPT PRACTICES HERE :(
+// WILL FIX WHEN TIME PERMITS
 const fetchData = async () => {
-  const urls = [];
+  const urls: any = [];
 
   return (
     axios
@@ -76,18 +148,20 @@ const fetchData = async () => {
         $("div.indexList ul li").each((i, element) => {
           urls.push({
             subject: $(element).text(),
-            subDirectory: mainUrl.concat($(element).find("a").attr("href")),
+            subDirectory: mainUrl.concat(
+              $(element).find("a").attr("href") || ""
+            ),
           });
         });
 
         return urls;
       })
       .then((urls) => {
-        const promises = [];
-        const schedule = [];
+        const promises: any = [];
+        const schedule: any = [];
 
         // Create list of promises to iterate through and return html per subdirectory
-        urls.forEach((subUrl, i) => {
+        urls.forEach((subUrl: any, i: number) => {
           promises.push(
             axios
               .get(subUrl["subDirectory"])
@@ -105,8 +179,11 @@ const fetchData = async () => {
         return axios
           .all(promises)
           .then((htmls) => {
-            htmls.forEach((html, i) => {
-              const departmentClasses = {
+            htmls.forEach((html: any, i: number) => {
+              const departmentClasses: {
+                major: string;
+                courses: Raw_CourseInfo[];
+              } = {
                 major: "",
                 courses: [],
               };
@@ -118,7 +195,7 @@ const fetchData = async () => {
 
               // Iterate through each course information (not classes) and save.
               $("div.courseBlock").each((i, element) => {
-                const courseInfo = {
+                const courseInfo: Raw_CourseInfo = {
                   courseCode: "",
                   courseTitle: "",
                   session: "",
@@ -162,7 +239,12 @@ const fetchData = async () => {
                 $(element)
                   .find(" table.sectionTable")
                   .each((j, jElement) => {
-                    let group = { group: "", requirements: "", classes: [] };
+                    let group: Raw_Group = {
+                      group: "",
+                      requirements: "",
+                      classes: [],
+                    };
+
                     if ($(jElement).prev().has("h5").text()) {
                       group.group = $(jElement).prev().find("h5").text();
                     }
@@ -225,19 +307,22 @@ const fetchData = async () => {
                             EThour = EThour + 12;
                           }
 
-                          SThour < 10
-                            ? (time.starttime.hour = "0" + SThour.toString())
-                            : (time.starttime.hour = SThour.toString());
-                          EThour < 10
-                            ? (time.endtime.hour = "0" + EThour.toString())
-                            : (time.endtime.hour = EThour.toString());
+                          time.starttime.hour =
+                            SThour < 10
+                              ? "0" + SThour.toString()
+                              : SThour.toString();
+
+                          time.endtime.hour =
+                            EThour < 10
+                              ? "0" + EThour.toString()
+                              : EThour.toString();
 
                           time.starttime.date = newTime(
                             time.starttime.hour + ":" + time.starttime.minute
-                          );
+                          ).toISO();
                           time.endtime.date = newTime(
                             time.endtime.hour + ":" + time.endtime.minute
-                          );
+                          ).toISO();
                         }
 
                         // Add all data
@@ -257,7 +342,7 @@ const fetchData = async () => {
                                 .eq(8)
                                 .find("div.dot")
                                 .find("img")
-                                .attr("title")
+                                .attr("title") || ""
                             : "",
                           location: $(kElement).children().eq(9).text(),
                           instructor: $(kElement).children().eq(10).text(),
@@ -285,52 +370,51 @@ const fetchData = async () => {
   );
 };
 
-const postProcess = (data) => {
-  return data.map((v) => v + "-PP'd");
+const postProcess = (data: any) => {
+  return data.map((v: any, i: number) => "REPLACED ALL YOUR DATA " + i);
 };
-
-const outputToFile = (data, filename) => {
-  // // Create / overwrite empty json file for results.
-  // fs.closeSync(fs.openSync("./scripts/schedule.json", "w"));
-  try {
-    const stringifiedData = JSON.stringify(data);
-    const url = path.resolve(__dirname, filename);
-
-    fs.writeFileSync(url, stringifiedData);
-    // fs.appendFileSync(path.resolve(__dirname, filename), stringifiedData);
-  } catch (err) {
-    console.log("Error writing into Json.");
-  }
-};
-
-const appendToFilename = (filename, str) => {
-  const lastPeriodIndex = filename.lastIndexOf(".");
-
-  const fileName = filename.slice(0, lastPeriodIndex);
-  const filetype = filename.slice(lastPeriodIndex, filename.length + 1);
-
-  return lastPeriodIndex === -1 ? filename : `${fileName}${str}${filetype}`;
-};
-
-const determineFilename = (appendStr) =>
-  ARGS.output
-    ? appendToFilename(ARGS.output, appendStr)
-    : // ? `PP-${ARGS.output}`
-      `${preArgs.argv.period}-${preArgs.argv.year}${appendStr}.json`;
 
 // Run script.
 const runScript = async () => {
-  const rawData = ["abc", "gdf", "t"];
-  // const rawData = await fetchData();
+  console.log(`>>> Script started for:\n    ${srcUrl}`);
 
-  if (ARGS.raw) outputToFile(rawData, determineFilename("-RAW"));
+  let rawDataLocation = "";
+  let processedDataLocation = "";
+
+  console.log(">>> Scraping raw data...");
+  const rawData = await fetchData();
+  // const rawData = ["abc", "gdf", "t"];
+  console.log(">>> Completed scraping data!");
+
+  if (ARGS.raw)
+    rawDataLocation = outputToFile(rawData, determineFilename("-RAW"));
 
   if (ARGS.post_process) {
+    console.log(">>> Processing scraped data...");
     const processedData = postProcess(rawData);
-    outputToFile(processedData, determineFilename("-PP"));
+    console.log(">>> Completed processing data!");
+    processedDataLocation = outputToFile(
+      processedData,
+      determineFilename("-PP")
+    );
   }
 
-  if (!ARGS.raw && !ARGS.post_process) console.log(rawData);
+  if (!ARGS.raw && !ARGS.post_process) {
+    console.log(
+      "!!! Since neither --raw or --pp were passed, the raw scraped data will be printed to console."
+    );
+
+    await pauseForInput(">>> Press [ENTER] to continue.\n>>> ");
+    console.log(rawData);
+  }
+
+  console.log(
+    rawDataLocation && `>>> Raw scraped data saved in ${rawDataLocation}`
+  );
+  console.log(
+    processedDataLocation &&
+      `>>> Processed data saved in ${processedDataLocation}`
+  );
 };
 
 runScript();

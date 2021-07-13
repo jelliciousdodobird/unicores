@@ -31,7 +31,6 @@
     "react-scripts": "4.0.3",
     "recoil": "^0.2.0",
     "shortid": "^2.2.16",
-    "typescript": "^4.2.4",
     "use-resize-observer": "^7.0.0",
     "web-vitals": "^1.1.1"
   },
@@ -39,7 +38,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "scrape": "ts-node ./scripts/csulbScraper.ts",
+    "scrape-default": "ts-node ./scripts/csulbScraper.ts --raw --pp"
   },
   "eslintConfig": {
     "extends": [
@@ -60,8 +61,11 @@
     ]
   },
   "devDependencies": {
+    "@types/yargs": "^17.0.2",
     "axios": "^0.21.1",
     "cheerio": "^1.0.0-rc.6",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5",
     "yargs": "^17.0.1"
   }
 }
