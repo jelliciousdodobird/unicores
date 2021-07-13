@@ -25,4 +25,5 @@ yarn-error.log*
 
 # data files
 /src/schedule-short.json
-/scripts/schedule.json
+/src/schedule-full.json
+/scripts/*.json
